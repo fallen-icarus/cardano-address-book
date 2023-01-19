@@ -18,6 +18,7 @@
 module CardanoAddressBook 
 (
   readPubKeyHash,
+  PaymentPubKeyHash,
   BeaconRedeemer (..),
   beaconScript,
   beaconSymbol,
