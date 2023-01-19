@@ -18,6 +18,17 @@ library
   import: lang
   exposed-modules: CardanoAddressBook
   build-depends:
+    plutus-ledger,
+    plutus-ledger-api,
+    plutus-core,
+    plutus-tx-plugin,
+    plutus-tx,
+    plutus-script-utils,
+    cardano-api,
+    bytestring,
+    serialise,
+    aeson,
+    plutonomy,
   hs-source-dirs: src
   ghc-options:
     -fobject-code 
