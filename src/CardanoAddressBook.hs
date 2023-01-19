@@ -82,7 +82,7 @@ PlutusTx.unstableMakeIsData ''BeaconRedeemer
 mkBeacon :: BeaconRedeemer -> ScriptContext -> Bool
 mkBeacon r ctx@ScriptContext{scriptContextTxInfo = info} = case r of
     MintBeacon pkh ->
-      -- | Must mint beacon with correct token name.
+      -- | Must mint one beacon with correct token name.
       mintCheck pkh 1 &&
       -- | Beacon must go to correct address.
       beaconOwnerCheck pkh
@@ -90,7 +90,7 @@ mkBeacon r ctx@ScriptContext{scriptContextTxInfo = info} = case r of
       -- | Proper beacon must be burned.
       burnCheck pkh &&
       -- | Must be signed by the payment pubkey hash.
-      traceIfFalse "Owner didn't sign." (txSignedBy info $ unPaymentPubKeyHash pkh)
+      traceIfFalse "Payment pubkey didn't sign." (txSignedBy info $ unPaymentPubKeyHash pkh)
 
   where
     beaconSym :: CurrencySymbol
