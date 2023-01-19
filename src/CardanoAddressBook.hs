@@ -88,7 +88,7 @@ mkBeacon r ctx@ScriptContext{scriptContextTxInfo = info} = case r of
       beaconOwnerCheck pkh
     BurnBeacon pkh ->
       -- | Proper beacon must be burned.
-      mintCheck pkh (-1) &&
+      burnCheck pkh &&
       -- | Must be signed by the payment pubkey hash.
       traceIfFalse "Owner didn't sign." (txSignedBy info $ unPaymentPubKeyHash pkh)
 
@@ -102,7 +102,12 @@ mkBeacon r ctx@ScriptContext{scriptContextTxInfo = info} = case r of
     mintCheck :: PaymentPubKeyHash -> Integer -> Bool
     mintCheck pkh target
       | beaconsMinted pkh == target = True
-      | otherwise = traceError "Only one beacon can be minted/burned at a time."
+      | otherwise = traceError "Only one beacon can be minted at a time."
+
+    burnCheck :: PaymentPubKeyHash -> Bool
+    burnCheck pkh
+      | beaconsMinted pkh < 0 = True
+      | otherwise = traceError "Beacons must be burned with this redeemer."
 
     valuePaidToPubKey :: PaymentPubKeyHash -> Value
     valuePaidToPubKey pkh = valuePaidTo info $ unPaymentPubKeyHash pkh

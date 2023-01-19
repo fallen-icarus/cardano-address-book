@@ -188,10 +188,10 @@ successfullMint = do
   
   void $ waitUntilSlot 2
 
--- | A trace where too many beacons are burned.
--- This should produce a failed transaction when burnBeacon is called.
-burnTooManyBeacons :: EmulatorTrace ()
-burnTooManyBeacons = do
+-- | A trace where many beacons are burned.
+-- This should produce a successfull transaction when burnBeacon is called.
+burnManyBeacons :: EmulatorTrace ()
+burnManyBeacons = do
   h1 <- activateContractWallet (knownWallet 1) endpoints
 
   callEndpoint @"burn-beacon" h1 $
@@ -243,8 +243,8 @@ test = do
           assertNoFailedTransactions successfullMint
       ]
     , testGroup "Burn Beacon"
-      [ checkPredicateOptions burnOpts "Too Many Beacons Burned"
-          (Test.not assertNoFailedTransactions) burnTooManyBeacons
+      [ checkPredicateOptions burnOpts "Many Beacons Burned"
+          assertNoFailedTransactions burnManyBeacons
       , checkPredicateOptions burnOpts "PubKey Didn't Sign"
           (Test.not assertNoFailedTransactions) pubKeyDoesntSign
       , checkPredicateOptions burnOpts "Successfull Burn"
