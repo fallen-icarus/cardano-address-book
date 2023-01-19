@@ -26,6 +26,7 @@ module CardanoAddressBook
 
   -- For Testing
   beaconPolicy,
+  pubKeyAsToken,
 ) where
 
 import Data.Aeson hiding (Value)
@@ -57,6 +58,10 @@ readPubKeyHash :: Haskell.String -> Either Haskell.String PaymentPubKeyHash
 readPubKeyHash s = case fromHex $ fromString s of
   Right (LedgerBytes bytes') -> Right $ PaymentPubKeyHash $ PubKeyHash bytes'
   Left msg                   -> Left $ "could not convert: " <> msg
+
+{-# INLINABLE pubKeyAsToken #-}
+pubKeyAsToken :: PaymentPubKeyHash -> TokenName
+pubKeyAsToken = TokenName . getPubKeyHash . unPaymentPubKeyHash
 
 -------------------------------------------------
 -- Address Book Beacon Settings
@@ -90,9 +95,6 @@ mkBeacon r ctx@ScriptContext{scriptContextTxInfo = info} = case r of
   where
     beaconSym :: CurrencySymbol
     beaconSym = ownCurrencySymbol ctx
-
-    pubKeyAsToken :: PaymentPubKeyHash -> TokenName
-    pubKeyAsToken = TokenName . getPubKeyHash . unPaymentPubKeyHash
 
     beaconsMinted :: PaymentPubKeyHash -> Integer
     beaconsMinted pkh = valueOf (txInfoMint info) beaconSym (pubKeyAsToken pkh)
