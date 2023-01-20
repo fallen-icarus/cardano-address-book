@@ -4,6 +4,7 @@ module CLI.Parsers
 ) where
 
 import Options.Applicative
+import Data.Map (fromList)
 
 import CLI.Types
 import CardanoAddressBook
@@ -12,6 +13,8 @@ parseCommand :: Parser Command
 parseCommand = hsubparser $
   command "beacon"
     (info parseBeaconCmd $ progDesc "Commands for using the beacons.") <>
+  command "create-entry"
+    (info parseAddressEntry $ progDesc "Create the entry to be stored in the on-chain address book.") <>
   command "query-address-book"
     (info parseQueryAddressBook $ progDesc "Query the address book.")
 
@@ -29,6 +32,13 @@ parseQueryAddressBook =
       <*> pNetwork
       <*> pOutput
   where
+    pPubKeyHash :: Parser PaymentPubKeyHash
+    pPubKeyHash = option (eitherReader readPubKeyHash)
+      (  long "payment-key-hash" 
+      <> metavar "STRING" 
+      <> help "The payment key hash."
+      )
+
     pNetwork :: Parser Network
     pNetwork = pMainnet <|> pPreProdTestnet
       where
@@ -44,6 +54,31 @@ parseQueryAddressBook =
           <> metavar "STRING"
           <> help "Query the preproduction testnet using the Blockfrost Api with the supplied api key.")
 
+parseAddressEntry :: Parser Command
+parseAddressEntry =
+    CreateEntry
+      <$> pAddressEntry
+      <*> pOutput
+  where
+    pAddressEntry :: Parser AddressEntry
+    pAddressEntry = AddressEntry <$> (fromList <$> many pEntry)
+    
+    pEntry :: Parser (String,String)
+    pEntry = (,) <$> pAlias <*> pAddress
+
+    pAlias :: Parser String
+    pAlias = strOption
+      (  long "alias"
+      <> metavar "STRING"
+      <> help "The alias to be used with the supplied address."
+      )
+
+    pAddress :: Parser String
+    pAddress = strOption
+      (  long "address"
+      <> metavar "STRING"
+      <> help "The full address."
+      )
 
 pExportBeaconPolicy :: Parser BeaconCmd
 pExportBeaconPolicy = ExportBeaconPolicyScript <$> pOutputFile
@@ -67,13 +102,6 @@ pCreateBeaconRedeemer =
       <> metavar "STRING"
       <> help "Burn a beacon for the supplied payment pubkey hash."
       )
-
-pPubKeyHash :: Parser PaymentPubKeyHash
-pPubKeyHash = option (eitherReader readPubKeyHash)
-  (  long "payment-key-hash" 
-  <> metavar "STRING" 
-  <> help "The payment key hash."
-  )
 
 pOutputFile :: Parser FilePath
 pOutputFile = strOption

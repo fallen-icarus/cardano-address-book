@@ -77,6 +77,10 @@ executable cardano-address-book
       CLI.Run
 
     build-depends:    cardano-address-book,
-                      optparse-applicative
+                      optparse-applicative,
+                      containers,
+                      aeson,
+                      bytestring,
+                      aeson-pretty
     hs-source-dirs:   app
     default-language: Haskell2010
