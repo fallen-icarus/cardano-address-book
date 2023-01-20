@@ -31,7 +31,7 @@ An example entry:
 }
 ```
 
-The supplied `cardano-address-book` cli program will properly format the entry for you so it is advized to rely on it.
+The supplied `cardano-address-book` CLI program will properly format the entry for you so it is advized to rely on it.
 
 ### Querying The Address Book
 Once the transaction is successfully added to the blockchain, you can then query the beacons off chain using two apis:
@@ -76,10 +76,15 @@ The returned address book would be:
 }
 ```
 
+Note: if you try to query a beacon token that has never been minted before, you will get an api error when you try to query the beacon. This is due the the beacon itself being part of the Blockfrost api url.
+
 ### Updating The Address Book
 Whenever you want to change the address associated to a certain alias, just add a new entry with the updated address for that alias. When the query is done off-chain, the newest entry always replaces the older one. 
 
 Only the aliases being changed/added need to be submitted in any transaction. The off chain query will always be able to find all of the entries and properly aggregate them.
+
+### Burning The Address Book Beacon
+As previously stated, burning the beacon is possible as long as the related payment pubkey signs the transaction. There is no need to burn the beacon between uses. If you do burn the beacon, the address book cannot be updated again until the beacon is re-minted.
 
 ## Will This Cause Blockchain Bloat?
 Each address entry is only about 100 bytes. I do not believe this will cause any issues related to blockchain bloat.
