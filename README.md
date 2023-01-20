@@ -9,6 +9,7 @@ Due to the seemingly random nature of blockchain addresses, it would be nice to 
 1. Every payment key would have its own address book. Users do not have to worry about whether or not that alias is taken by another user.
 2. The address book would always be recoverable as long as the payment key hash is known. The user can lose access to the payment key itself while still being able to see the address book (they just can't update it anymore).
 
+---
 ## The Address Book Beacon
 Linking the address book to the user's payment key is done by only allowing that user to mint the beacon for that payment key. The user's payment pubkey hash is used as the beacon's token name. In order to mint a beacon of a certain payment pubkey hash, two conditions must be met:
 
@@ -86,17 +87,21 @@ Only the aliases being changed/added need to be submitted in any transaction. Th
 ### Burning The Address Book Beacon
 As previously stated, burning the beacon is possible as long as the related payment pubkey signs the transaction. There is no need to burn the beacon between uses. If you do burn the beacon, the address book cannot be updated again until the beacon is re-minted.
 
+---
 ## Easily integratable into wallets and frontends
 All that is needed to integrate this functionality is to support the above usage and the off-chain querying. No complicated extensions or cryptography is needed.
 
+---
 ## Will This Cause Blockchain Bloat?
 Each address entry is only about 100 bytes. I do not believe this will cause any issues related to blockchain bloat.
 
+---
 ## Should the address book be blindly trusted?
 The on-chain address book itself is guaranteed to be correct thanks to using the blockchain. However, the off-chain querying does present the opportunity for a spoofing attack if third party platforms are used. Therefore, unless you are querying the blockchain directly (with your own dbsync or related application), then the results of the off-chain query should not be blindly trusted.
 
 If frontends decide to incorporate this address book functionality, the users should be warned about this potential spoofing attack.
 
+---
 ## Generalizable to other information
 Cardano metadata can use any JSON information as long as the top level keys are integers. As you saw from the examples above, this address book only uses the 0 key. That means all of the other keys are still available to be used with other information. 
 
