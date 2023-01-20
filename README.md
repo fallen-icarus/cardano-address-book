@@ -6,8 +6,8 @@ The Getting Started instructions can be found [here](GettingStarted.md).
 ## Motivation
 Due to the seemingly random nature of blockchain addresses, it would be nice to be able to somehow save an "address book" so that users do not need to memorize the addresses they frequently use. The ideal solution would be to somehow link the address book with the user's payment key. This reasons for this are two-fold:
 
-1. Every payment key would have its own address book. Users do not have to worry about if that address alias is taken by another user.
-2. The address would always be recoverable as long as the payment key hash is known. The user can lose access to the payment key itself while still being able to see the address book (they just can't update it anymore).
+1. Every payment key would have its own address book. Users do not have to worry about whether or not that alias is taken by another user.
+2. The address book would always be recoverable as long as the payment key hash is known. The user can lose access to the payment key itself while still being able to see the address book (they just can't update it anymore).
 
 ## The Address Book Beacon
 Linking the address book to the user's payment key is done by only allowing that user to mint the beacon for that payment key. The user's payment pubkey hash is used as the beacon's token name. In order to mint a beacon of a certain payment pubkey hash, two conditions must be met:
@@ -76,7 +76,7 @@ The returned address book would be:
 }
 ```
 
-Note: if you try to query a beacon token that has never been minted before, you will get an api error when you try to query the beacon. This is due the the beacon itself being part of the Blockfrost api url.
+Note: if you try to query a beacon token that has never been minted before, you will get an api error. This is due the the beacon itself being part of the Blockfrost api url. If the beacon has never been minted before, that url doesn't exist yet.
 
 ### Updating The Address Book
 Whenever you want to change the address associated to a certain alias, just add a new entry with the updated address for that alias. When the query is done off-chain, the newest entry always replaces the older one. 
