@@ -34,7 +34,7 @@ An example entry:
 The supplied `cardano-address-book` CLI program will properly format the entry for you so it is advized to rely on it.
 
 ### Querying The Address Book
-Once the transaction is successfully added to the blockchain, you can then query the beacons off chain using two apis:
+Once the transaction is successfully added to the blockchain, you can then query the beacons off-chain using two apis:
 
 | Task | Koios Api | Blockfrost Api |
 |--|--|--|
@@ -81,13 +81,25 @@ Note: if you try to query a beacon token that has never been minted before, you 
 ### Updating The Address Book
 Whenever you want to change the address associated to a certain alias, just add a new entry with the updated address for that alias. When the query is done off-chain, the newest entry always replaces the older one. 
 
-Only the aliases being changed/added need to be submitted in any transaction. The off chain query will always be able to find all of the entries and properly aggregate them.
+Only the aliases being changed/added need to be submitted in any transaction. The off-chain query will always be able to find all of the entries and properly aggregate them.
 
 ### Burning The Address Book Beacon
 As previously stated, burning the beacon is possible as long as the related payment pubkey signs the transaction. There is no need to burn the beacon between uses. If you do burn the beacon, the address book cannot be updated again until the beacon is re-minted.
+
+## Easily integratable into wallets and frontends
+All that is needed to integrate this functionality is to support the above usage and the off-chain querying. No complicated extensions or cryptography is needed.
 
 ## Will This Cause Blockchain Bloat?
 Each address entry is only about 100 bytes. I do not believe this will cause any issues related to blockchain bloat.
 
 ## Should the address book be blindly trusted?
-The on-chain address book itself is guaranteed to be correct thanks to using the blockchain. However, the off chain querying does present the opportunity for a spoofing attack if third party platforms are used. Therefore, unless you are querying the blockchain directly (with your own dbsync or related application), then the results of the off chain query should not be blindly trusted.
+The on-chain address book itself is guaranteed to be correct thanks to using the blockchain. However, the off-chain querying does present the opportunity for a spoofing attack if third party platforms are used. Therefore, unless you are querying the blockchain directly (with your own dbsync or related application), then the results of the off-chain query should not be blindly trusted.
+
+If frontends decide to incorporate this address book functionality, the users should be warned about this potential spoofing attack.
+
+## Generalizable to other information
+Cardano metadata can use any JSON information as long as the top level keys are integers. As you saw from the examples above, this address book only uses the 0 key. That means all of the other keys are still available to be used with other information. 
+
+The exact same beacon and usage can be used with this other information. For this reason, I considered naming this program `cardano-notes` however, the blockchain should not be used for just any information, only critical information. "Notes" seemed to broad of a category.
+
+:warning: If you use the other keys with this beacon, the `cardano-address-book` CLI will not be able to parse the address book anymore because it assumes only the 0 key is used. The off-chain code will need to be changed in order to allow querying with the other keys.
