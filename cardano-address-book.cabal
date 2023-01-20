@@ -74,13 +74,20 @@ executable cardano-address-book
     other-modules:
       CLI.Parsers,
       CLI.Types,
-      CLI.Run
+      CLI.Run,
+      CLI.BlockfrostApi,
+      CLI.Query
 
     build-depends:    cardano-address-book,
                       optparse-applicative,
                       containers,
                       aeson,
                       bytestring,
-                      aeson-pretty
+                      aeson-pretty,
+                      text,
+                      servant,
+                      servant-client,
+                      http-client-tls,
+                      http-client
     hs-source-dirs:   app
     default-language: Haskell2010
