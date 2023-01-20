@@ -12,7 +12,7 @@ bookBeaconRedeemerFile="${dir}burn.json"
 ownerPubKeyHash=$(cat ../assets/wallets/01.pkh)
 
 # Export the beacon policy
-cabal run -v0 cardano-address-book -- beacon policy-script \
+cardano-address-book beacon policy-script \
   --out-file $bookBeaconPolicyFile
 
 # Get the beacon policy id
@@ -23,7 +23,7 @@ beaconPolicyId=$(cardano-cli transaction policyid \
 beacon="${beaconPolicyId}.${ownerPubKeyHash}"
 
 # Create the beacon redeemer file
-cabal run -v0 cardano-address-book -- beacon create-redeemer \
+cardano-address-book beacon create-redeemer \
   --burn-beacon $ownerPubKeyHash \
   --out-file $bookBeaconRedeemerFile
 

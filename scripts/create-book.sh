@@ -8,7 +8,7 @@ addressEntryFile="${dir}entry.json"
 ownerPubKeyHash=$(cat ../assets/wallets/01.pkh)
 
 # Export the beacon policy
-cabal run -v0 cardano-address-book -- beacon policy-script \
+cardano-address-book beacon policy-script \
   --out-file $bookBeaconPolicyFile
 
 # Get the beacon policy id
@@ -19,12 +19,12 @@ beaconPolicyId=$(cardano-cli transaction policyid \
 beacon="${beaconPolicyId}.${ownerPubKeyHash}"
 
 # Create the beacon redeemer file
-cabal run -v0 cardano-address-book -- beacon create-redeemer \
+cardano-address-book beacon create-redeemer \
   --mint-beacon $ownerPubKeyHash \
   --out-file $bookBeaconRedeemerFile
 
 # Create the first entry file
-cabal run -v0 cardano-address-book -- create-entry \
+cardano-address-book create-entry \
   --alias User2 \
   --address $(cat ../assets/wallets/02.addr) \
   --alias User3 \

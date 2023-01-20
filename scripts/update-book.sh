@@ -10,7 +10,7 @@ bookBeaconPolicyFile="${dir}beacon.plutus"  # This is just needed to get the bea
 ownerPubKeyHash=$(cat ../assets/wallets/01.pkh)
 
 # Export the beacon policy
-cabal run -v0 cardano-address-book -- beacon policy-script \
+cardano-address-book beacon policy-script \
   --out-file $bookBeaconPolicyFile
 
 # Get the beacon policy id
@@ -21,7 +21,7 @@ beaconPolicyId=$(cardano-cli transaction policyid \
 beacon="${beaconPolicyId}.${ownerPubKeyHash}"
 
 # Create address entry
-cabal run -v0 cardano-address-book -- create-entry \
+cardano-address-book create-entry \
   --alias User2 \
   --address $(cat ../assets/wallets/02.addr) \
   --alias User1 \
