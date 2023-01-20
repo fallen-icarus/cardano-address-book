@@ -9,6 +9,7 @@ Template bash scripts that follow these steps are available [here](scripts/).
 - [Installing](#installing)
 - [Minting an address book beacon and adding the first entry](#minting-an-address-book-beacon-and-adding-the-first-entry)
 - [Adding an entry](#adding-an-entry)
+- [Burn the address book beacon](#burn-the-address-book-beacon)
 
 ---
 ## Installing
