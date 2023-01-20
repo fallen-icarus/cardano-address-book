@@ -14,7 +14,7 @@ parseCommand = hsubparser $
   command "beacon"
     (info parseBeaconCmd $ progDesc "Commands for using the beacons.") <>
   command "create-entry"
-    (info parseAddressEntry $ progDesc "Create the entry to be stored in the on-chain address book.") <>
+    (info parseAddressEntry $ progDesc "Create the entry to be stored in the on-chain address book. You can add multiple alias/address pairs to the entry.") <>
   command "query-address-book"
     (info parseQueryAddressBook $ progDesc "Query the address book.")
 
@@ -61,7 +61,7 @@ parseAddressEntry =
       <*> pOutput
   where
     pAddressEntry :: Parser AddressEntry
-    pAddressEntry = AddressEntry <$> (fromList <$> many pEntry)
+    pAddressEntry = AddressEntry <$> (fromList <$> some pEntry)
     
     pEntry :: Parser (String,String)
     pEntry = (,) <$> pAlias <*> pAddress
