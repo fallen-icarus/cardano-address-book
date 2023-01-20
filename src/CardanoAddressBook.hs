@@ -20,6 +20,8 @@ module CardanoAddressBook
   readPubKeyHash,
   PaymentPubKeyHash,
   BeaconRedeemer (..),
+  CurrencySymbol,
+  TokenName,
   beaconScript,
   beaconSymbol,
   writeScript,
@@ -118,7 +120,7 @@ mkBeacon r ctx@ScriptContext{scriptContextTxInfo = info} = case r of
       let v = valueOf (valuePaidToPubKey pkh) beaconSym (pubKeyAsToken pkh)
       in if v == 1
          then True
-         else traceError "The one beacon minted must go to address of the payment pubkey hash."
+         else traceError "The minted beacon must go to address of the payment pubkey hash."
 
 beaconPolicy :: MintingPolicy
 beaconPolicy = Plutonomy.optimizeUPLC $ mkMintingPolicyScript
