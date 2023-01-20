@@ -107,4 +107,4 @@ Cardano metadata can use any JSON information as long as the top level keys are 
 
 The exact same beacon and usage can be used with this other information. For this reason, I considered naming this program `cardano-notes` however, the blockchain should not be used for just any information, only critical information. "Notes" seemed to broad of a category.
 
-:warning: If you use the other keys with this beacon, the `cardano-address-book` CLI will not be able to parse the address book anymore because it assumes only the 0 key is used. The off-chain code will need to be changed in order to allow querying with the other keys.
+:warning: If you use the other keys with this beacon, the `cardano-address-book` CLI will not be able to properly parse the address book anymore because it assumes only the 0 key is used. The off-chain code will need to be changed in order to allow querying with the other keys.
