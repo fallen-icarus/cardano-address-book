@@ -34,7 +34,6 @@ cardano-cli transaction build \
   --tx-in 94cb786f2253f6db72193b60d9b7b5b51d0c169c2273aed8d6f02a859e7af70a#1 \
   --tx-out "$(cat ../assets/wallets/01.addr) + 2000000 lovelace + 1 ${beacon}" \
   --change-address $(cat ../assets/wallets/01.addr) \
-  --tx-in-collateral 4d199236a5276d4d1fed93b82d31295b6e4ac4089942a2b92ff25c603f64bcf3#1 \
   --metadata-json-file $addressEntryFile \
   --testnet-magic 1 \
   --out-file "${tmpDir}tx.body"
