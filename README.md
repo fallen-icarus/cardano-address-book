@@ -88,3 +88,6 @@ As previously stated, burning the beacon is possible as long as the related paym
 
 ## Will This Cause Blockchain Bloat?
 Each address entry is only about 100 bytes. I do not believe this will cause any issues related to blockchain bloat.
+
+## Should the address book be blindly trusted?
+The on-chain address book itself is guaranteed to be correct thanks to using the blockchain. However, the off chain querying does present the opportunity for a spoofing attack if third party platforms are used. Therefore, unless you are querying the blockchain directly (with your own dbsync or related application), then the results of the off chain query should not be blindly trusted.
