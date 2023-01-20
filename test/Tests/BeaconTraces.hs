@@ -102,10 +102,14 @@ mintBeacon MintBeaconParams{..} = do
       beaconTokenName = pubKeyAsToken mintPaymentPubKeyHash
       beaconMintRedeemer = toRedeemer $ MintBeacon mintPaymentPubKeyHash
 
-      lookups = plutusV2MintingPolicy beaconPolicy
+  userPubKeyHash <- ownFirstPaymentPubKeyHash
+
+  let lookups = plutusV2MintingPolicy beaconPolicy
       tx' =
         -- | Mint beacon
         mustMintCurrencyWithRedeemer beaconPolicyHash beaconMintRedeemer beaconTokenName mintAmount
+        -- | Must be signed by payment pubkey
+        <> mustBeSignedBy userPubKeyHash
   
   ledgerTx <- submitTxConstraintsWith @Void lookups tx'
   void $ awaitTxConfirmed $ getCardanoTxId ledgerTx
@@ -160,10 +164,10 @@ mintTooManyBeacons = do
   
   void $ waitUntilSlot 2
 
--- | A trace where the beacon does not go to the payment pubkey address.
+-- | A trace where the minting is not signed by the payment pubkey.
 -- This should produce a failed transaction when mintBeacon is called.
-mintToTheWrongAddress :: EmulatorTrace ()
-mintToTheWrongAddress = do
+pubkeyDoesntSignMint :: EmulatorTrace ()
+pubkeyDoesntSignMint = do
   h1 <- activateContractWallet (knownWallet 1) endpoints
 
   callEndpoint @"mint-beacon" h1 $
@@ -204,8 +208,8 @@ burnManyBeacons = do
 
 -- | A trace where the payment pubkey doesn't sign.
 -- This should produce a failed transaction when burnBeacon is called.
-pubKeyDoesntSign :: EmulatorTrace ()
-pubKeyDoesntSign = do
+pubKeyDoesntSignBurn :: EmulatorTrace ()
+pubKeyDoesntSignBurn = do
   h2 <- activateContractWallet (knownWallet 2) endpoints
 
   callEndpoint @"burn-beacon" h2 $
@@ -237,8 +241,8 @@ test = do
     [ testGroup "Mint Beacon"
       [ checkPredicate "Too Many Beacons Minted"
           (Test.not assertNoFailedTransactions) mintTooManyBeacons
-      , checkPredicate "Beacon Minted To Wrong Address"
-          (Test.not assertNoFailedTransactions) mintToTheWrongAddress
+      , checkPredicate "Pubkey Didn't Sign"
+          (Test.not assertNoFailedTransactions) pubkeyDoesntSignMint
       , checkPredicate "Successfull Mint"
           assertNoFailedTransactions successfullMint
       ]
@@ -246,7 +250,7 @@ test = do
       [ checkPredicateOptions burnOpts "Many Beacons Burned"
           assertNoFailedTransactions burnManyBeacons
       , checkPredicateOptions burnOpts "PubKey Didn't Sign"
-          (Test.not assertNoFailedTransactions) pubKeyDoesntSign
+          (Test.not assertNoFailedTransactions) pubKeyDoesntSignBurn
       , checkPredicateOptions burnOpts "Successfull Burn"
           assertNoFailedTransactions successfullBurn
       ]

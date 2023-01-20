@@ -87,8 +87,8 @@ mkBeacon r ctx@ScriptContext{scriptContextTxInfo = info} = case r of
     MintBeacon pkh ->
       -- | Must mint one beacon with correct token name.
       mintCheck pkh 1 &&
-      -- | Beacon must go to correct address.
-      beaconOwnerCheck pkh
+      -- | Must be signed by the payment pubkey hash.
+      traceIfFalse "Payment pubkey didn't sign." (txSignedBy info $ unPaymentPubKeyHash pkh)
     BurnBeacon pkh ->
       -- | Proper beacon must be burned.
       burnCheck pkh &&
@@ -111,16 +111,6 @@ mkBeacon r ctx@ScriptContext{scriptContextTxInfo = info} = case r of
     burnCheck pkh
       | beaconsMinted pkh < 0 = True
       | otherwise = traceError "Beacons must be burned with this redeemer."
-
-    valuePaidToPubKey :: PaymentPubKeyHash -> Value
-    valuePaidToPubKey pkh = valuePaidTo info $ unPaymentPubKeyHash pkh
-
-    beaconOwnerCheck :: PaymentPubKeyHash -> Bool
-    beaconOwnerCheck pkh =
-      let v = valueOf (valuePaidToPubKey pkh) beaconSym (pubKeyAsToken pkh)
-      in if v == 1
-         then True
-         else traceError "The minted beacon must go to address of the payment pubkey hash."
 
 beaconPolicy :: MintingPolicy
 beaconPolicy = Plutonomy.optimizeUPLC $ mkMintingPolicyScript
