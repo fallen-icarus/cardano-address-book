@@ -45,6 +45,7 @@ cardano-cli transaction build \
   --change-address $(cat ../assets/wallets/01.addr) \
   --tx-in-collateral 4d199236a5276d4d1fed93b82d31295b6e4ac4089942a2b92ff25c603f64bcf3#1 \
   --metadata-json-file $addressEntryFile \
+  --required-signer-hash $ownerPubKeyHash \
   --testnet-magic 1 \
   --protocol-params-file "${tmpDir}protocol.json" \
   --out-file "${tmpDir}tx.body"
