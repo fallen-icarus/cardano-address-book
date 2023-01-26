@@ -71,7 +71,7 @@ pubKeyAsToken = TokenName . getPubKeyHash . unPaymentPubKeyHash
 -------------------------------------------------
 data BeaconRedeemer
   -- | To mint an address book beacon, the minted token must have the proper token name
-  -- and the beacon must go to an address associated with the supplied payment pubkey hash.
+  -- and the supplied pubkey must sign the tx.
   = MintBeacon PaymentPubKeyHash
   -- | While the beacon is not meant to constantly be minted and burned, this option is here just
   -- in case burning is needed.
