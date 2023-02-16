@@ -51,7 +51,8 @@ import Plutus.Script.Utils.V2.Scripts as Scripts
 import Plutus.Script.Utils.V2.Typed.Scripts
 import Ledger.Bytes (fromHex)
 import qualified Plutonomy
-import Ledger.Value (valueOf)
+import Ledger.Value (flattenValue)
+import qualified PlutusTx.AssocMap as Map
 
 -------------------------------------------------
 -- Misc Functions
@@ -75,7 +76,7 @@ data BeaconRedeemer
   = MintBeacon PaymentPubKeyHash
   -- | While the beacon is not meant to constantly be minted and burned, this option is here just
   -- in case burning is needed.
-  | BurnBeacon PaymentPubKeyHash
+  | BurnBeacon
 
 PlutusTx.unstableMakeIsData ''BeaconRedeemer
 
@@ -86,31 +87,34 @@ mkBeacon :: BeaconRedeemer -> ScriptContext -> Bool
 mkBeacon r ctx@ScriptContext{scriptContextTxInfo = info} = case r of
     MintBeacon pkh ->
       -- | Must mint one beacon with correct token name.
-      mintCheck pkh 1 &&
+      mintCheck &&
       -- | Must be signed by the payment pubkey hash.
       traceIfFalse "Payment pubkey didn't sign." (txSignedBy info $ unPaymentPubKeyHash pkh)
-    BurnBeacon pkh ->
+    BurnBeacon ->
       -- | Proper beacon must be burned.
-      burnCheck pkh &&
-      -- | Must be signed by the payment pubkey hash.
-      traceIfFalse "Payment pubkey didn't sign." (txSignedBy info $ unPaymentPubKeyHash pkh)
+      mintCheck
 
   where
     beaconSym :: CurrencySymbol
     beaconSym = ownCurrencySymbol ctx
 
-    beaconsMinted :: PaymentPubKeyHash -> Integer
-    beaconsMinted pkh = valueOf (txInfoMint info) beaconSym (pubKeyAsToken pkh)
+    -- | Returns only the beacons minted/burned
+    beaconMint :: [(CurrencySymbol,TokenName,Integer)]
+    beaconMint = case Map.lookup beaconSym $ getValue $ txInfoMint info of
+      Nothing -> traceError "MintError"
+      Just bs -> flattenValue $ Value $ Map.insert beaconSym bs Map.empty -- ^ a Value with only beacons
 
-    mintCheck :: PaymentPubKeyHash -> Integer -> Bool
-    mintCheck pkh target
-      | beaconsMinted pkh == target = True
-      | otherwise = traceError "Only one beacon can be minted at a time."
-
-    burnCheck :: PaymentPubKeyHash -> Bool
-    burnCheck pkh
-      | beaconsMinted pkh < 0 = True
-      | otherwise = traceError "Beacons must be burned with this redeemer."
+    mintCheck :: Bool
+    mintCheck = case (r, beaconMint) of
+      (MintBeacon pkh, [(_,tn,n)]) -> 
+        let name = pubKeyAsToken pkh
+        in if n < 1 then traceError "Must mint with this redeemer"
+           else
+             traceIfFalse "Can only mint beacon with user's pubkey as token name" (tn == name) &&
+             traceIfFalse "One, and only one, beacon must be minted with this redeemer." (n == 1)
+      (MintBeacon _, _) -> traceError "Can only mint beacon with user's pubkey as token name"
+      (BurnBeacon, xs) ->
+        traceIfFalse "Beacons can only be burned with this redeemer" (all (\(_,_,n) -> n < 0) xs)
 
 beaconPolicy :: MintingPolicy
 beaconPolicy = Plutonomy.optimizeUPLC $ mkMintingPolicyScript
