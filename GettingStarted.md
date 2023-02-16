@@ -186,7 +186,7 @@ beacon = policyId ++ "." ++ paymentPubKeyHash
 ### 4. Create the beacon redeemer file
 ``` Bash
 cardano-address-book beacon create-redeemer \
-  --burn-beacon <payment_pubkey_hash> \
+  --burn-beacon \
   --out-file burn.json
 ```
 
@@ -205,7 +205,6 @@ cardano-cli transaction build \
   --change-address $(cat pubkey.addr) \
   --tx-in-collateral <utxo_for_collateral> \
   --testnet-magic 1 \
-  --required-signer-hash <payment_pubkey_hash> \
   --protocol-params-file protocol.json \
   --out-file tx.body
 

@@ -16,7 +16,7 @@ Linking the address book to the user's payment key is done by only allowing that
 1. Only one beacon is minted in the transaction (there is no need for more than one).
 2. The desired payment pubkey MUST SIGN the transaction.
 
-By requiring the target payment pubkey to sign the transaction, no one but the owner of that payment pubkey can mint the address book beacon for that payment pubkey. Burning the address book beacon also requires the signature of the target payment pubkey.
+By requiring the target payment pubkey to sign the transaction, no one but the owner of that payment pubkey can mint the address book beacon for that payment pubkey. Since minting is heavily controlled, there is no need to control burning. Burning will always succeed.
 
 ## Using The Address Book Beacon
 ### Adding An Address Book Entry
@@ -85,7 +85,7 @@ Whenever you want to change the address associated to a certain alias, just add 
 Only the aliases being changed/added need to be submitted in any transaction. The off-chain query will always be able to find all of the entries and properly aggregate them.
 
 ### Burning The Address Book Beacon
-As previously stated, burning the beacon is possible as long as the related payment pubkey signs the transaction. There is no need to burn the beacon between uses. If you do burn the beacon, the address book cannot be updated again until the beacon is re-minted.
+As previously stated, burning the beacon is always possible. There is no need to burn the beacon between uses. If you do burn the beacon, the address book cannot be updated again until the beacon is re-minted.
 
 ---
 ## Easily integratable into wallets and frontends

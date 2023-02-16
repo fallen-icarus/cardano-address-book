@@ -97,10 +97,9 @@ pCreateBeaconRedeemer =
       )
 
     pBurn :: Parser BeaconRedeemer
-    pBurn = BurnBeacon <$> option (eitherReader readPubKeyHash)
+    pBurn = flag' BurnBeacon
       (  long "burn-beacon"
-      <> metavar "STRING"
-      <> help "Burn a beacon for the supplied payment pubkey hash."
+      <> help "Burn a beacon"
       )
 
 pOutputFile :: Parser FilePath
