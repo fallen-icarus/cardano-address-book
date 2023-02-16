@@ -15,7 +15,8 @@
 
 module Tests.BeaconTraces
 (
-  test
+  tests,
+  testTrace
 ) where
 
 import Control.Lens
@@ -39,9 +40,10 @@ import Playground.TH (mkSchemaDefinitions)
 import Plutus.Trace
 import Wallet.Emulator.Wallet
 import Plutus.Contract.Test as Test
+import Data.List (foldl')
 import Test.Tasty
 
-import Prelude as Haskell (Semigroup (..), String)
+import Prelude as Haskell (Semigroup (..),IO)
 
 import CardanoAddressBook
 
@@ -55,24 +57,19 @@ toRedeemer = Redeemer . PlutusTx.dataToBuiltinData . PlutusTx.toData
 -- Trace Configs
 -------------------------------------------------
 data MintBeaconParams = MintBeaconParams
-  { mintPaymentPubKeyHash :: PaymentPubKeyHash
-  , mintAmount :: Integer
+  { mintBeacons :: [(TokenName,Integer)]
+  , useMintRedeemer :: Bool
+  , redeemerPkh :: PaymentPubKeyHash
+  , userMustSign :: Bool
   } deriving (Generic,ToJSON,FromJSON,ToSchema)
 
-data BurnBeaconParams = BurnBeaconParams
-  { burnPaymentPubKeyHash :: PaymentPubKeyHash
-  , burnAmount :: Integer 
-  } deriving (Generic,ToJSON,FromJSON,ToSchema)
-
-type TraceSchema =
-      Endpoint "mint-beacon" MintBeaconParams
-  .\/ Endpoint "burn-beacon" BurnBeaconParams
+type TraceSchema = Endpoint "mint-beacons" MintBeaconParams
 
 mkSchemaDefinitions ''TraceSchema
 
 -- | Needed so that a beacon is at the wrong address.
-burnEmulatorConfig :: EmulatorConfig
-burnEmulatorConfig = EmulatorConfig (Left $ Map.fromList wallets) def
+burnConfig :: EmulatorConfig
+burnConfig = EmulatorConfig (Left $ Map.fromList wallets) def
   where
     beaconToken = 
       ( beaconSymbol
@@ -94,164 +91,134 @@ burnEmulatorConfig = EmulatorConfig (Left $ Map.fromList wallets) def
       ]
 
 -------------------------------------------------
--- Testing Models
+-- Models
 -------------------------------------------------
 mintBeacon :: MintBeaconParams -> Contract () TraceSchema Text ()
 mintBeacon MintBeaconParams{..} = do
-  let beaconPolicyHash = mintingPolicyHash beaconPolicy
-      beaconTokenName = pubKeyAsToken mintPaymentPubKeyHash
-      beaconMintRedeemer = toRedeemer $ MintBeacon mintPaymentPubKeyHash
-
   userPubKeyHash <- ownFirstPaymentPubKeyHash
 
-  let lookups = plutusV2MintingPolicy beaconPolicy
+  let beaconPolicyHash = mintingPolicyHash beaconPolicy
+      beaconRedeemer 
+        | useMintRedeemer = toRedeemer $ MintBeacon redeemerPkh
+        | otherwise = toRedeemer BurnBeacon
+      
+      lookups = plutusV2MintingPolicy beaconPolicy
       tx' =
-        -- | Mint beacon
-        mustMintCurrencyWithRedeemer beaconPolicyHash beaconMintRedeemer beaconTokenName mintAmount
+        (foldl' 
+          (\acc (t,i) -> acc <> mustMintCurrencyWithRedeemer beaconPolicyHash beaconRedeemer t i) 
+          mempty
+          mintBeacons
+        )
         -- | Must be signed by payment pubkey
-        <> mustBeSignedBy userPubKeyHash
+        <> if userMustSign
+           then mustBeSignedBy userPubKeyHash
+           else mempty
   
   ledgerTx <- submitTxConstraintsWith @Void lookups tx'
   void $ awaitTxConfirmed $ getCardanoTxId ledgerTx
-  logInfo @String "minted an address book beacon"
-
-burnBeacon :: BurnBeaconParams -> Contract () TraceSchema Text ()
-burnBeacon BurnBeaconParams{..} = do
-  let beaconPolicyHash = mintingPolicyHash beaconPolicy
-      beaconTokenName = pubKeyAsToken burnPaymentPubKeyHash
-      burnRedeemer = toRedeemer $ BurnBeacon burnPaymentPubKeyHash
-
-  userPubKeyHash <- ownFirstPaymentPubKeyHash
-
-  let lookups = plutusV2MintingPolicy beaconPolicy
-      tx' =
-        -- | Burn beacon
-        mustMintCurrencyWithRedeemer beaconPolicyHash burnRedeemer beaconTokenName burnAmount
-        -- | Must be signed by payment pubkey
-        <> mustBeSignedBy userPubKeyHash
-  
-  ledgerTx <- submitTxConstraintsWith @Void lookups tx'
-  void $ awaitTxConfirmed $ getCardanoTxId ledgerTx
-  logInfo @String "burned an address book beacon"
 
 -------------------------------------------------
 -- Enpoints
 -------------------------------------------------
 endpoints :: Contract () TraceSchema Text ()
-endpoints = selectList choices >> endpoints
+endpoints = awaitPromise mintBeacon' >> endpoints
   where
-    mintBeacon' = endpoint @"mint-beacon" mintBeacon
-    burnBeacon' = endpoint @"burn-beacon" burnBeacon
-    choices = 
-      [ mintBeacon'
-      , burnBeacon'
-      ]
+    mintBeacon' = endpoint @"mint-beacons" mintBeacon
 
 -------------------------------------------------
--- Trace Scenarios
+-- Scenarios
 -------------------------------------------------
--- | A trace where too many beacons are minted.
--- This should produce a failed transaction when mintBeacon is called.
-mintTooManyBeacons :: EmulatorTrace ()
-mintTooManyBeacons = do
+mintTooManyBeaconsForUser :: EmulatorTrace ()
+mintTooManyBeaconsForUser = do
   h1 <- activateContractWallet (knownWallet 1) endpoints
 
-  callEndpoint @"mint-beacon" h1 $
+  let userPubKeyHash = mockWalletPaymentPubKeyHash $ knownWallet 1
+  callEndpoint @"mint-beacons" h1 $
     MintBeaconParams
-      { mintPaymentPubKeyHash = mockWalletPaymentPubKeyHash $ knownWallet 1
-      , mintAmount = 3
+      { mintBeacons = [(pubKeyAsToken userPubKeyHash,4)]
+      , useMintRedeemer = True
+      , redeemerPkh = userPubKeyHash
+      , userMustSign = True
       }
-  
-  void $ waitUntilSlot 2
 
--- | A trace where the minting is not signed by the payment pubkey.
--- This should produce a failed transaction when mintBeacon is called.
-pubkeyDoesntSignMint :: EmulatorTrace ()
-pubkeyDoesntSignMint = do
+mintBeaconWithoutUserSigning :: EmulatorTrace ()
+mintBeaconWithoutUserSigning = do
   h1 <- activateContractWallet (knownWallet 1) endpoints
 
-  callEndpoint @"mint-beacon" h1 $
+  let userPubKeyHash = mockWalletPaymentPubKeyHash $ knownWallet 2
+  callEndpoint @"mint-beacons" h1 $
     MintBeaconParams
-      { mintPaymentPubKeyHash = mockWalletPaymentPubKeyHash $ knownWallet 2
-      , mintAmount = 1
+      { mintBeacons = [(pubKeyAsToken userPubKeyHash,1)]
+      , useMintRedeemer = True
+      , redeemerPkh = userPubKeyHash
+      , userMustSign = True
       }
-  
-  void $ waitUntilSlot 2
 
--- | A trace where everything is correct.
--- This should produce a successfull transaction when mintBeacon is called.
-successfullMint :: EmulatorTrace ()
-successfullMint = do
+mintAdditionalTokensForOtherUsers :: EmulatorTrace ()
+mintAdditionalTokensForOtherUsers = do
   h1 <- activateContractWallet (knownWallet 1) endpoints
 
-  callEndpoint @"mint-beacon" h1 $
+  let userPubKeyHash1 = mockWalletPaymentPubKeyHash $ knownWallet 1
+      userPubKeyHash2 = mockWalletPaymentPubKeyHash $ knownWallet 2
+  callEndpoint @"mint-beacons" h1 $
     MintBeaconParams
-      { mintPaymentPubKeyHash = mockWalletPaymentPubKeyHash $ knownWallet 1
-      , mintAmount = 1
+      { mintBeacons = 
+          [ (pubKeyAsToken userPubKeyHash1,1)
+          , (pubKeyAsToken userPubKeyHash2,1)
+          ]
+      , useMintRedeemer = True
+      , redeemerPkh = userPubKeyHash1
+      , userMustSign = True
       }
-  
-  void $ waitUntilSlot 2
 
--- | A trace where many beacons are burned.
--- This should produce a successfull transaction when burnBeacon is called.
-burnManyBeacons :: EmulatorTrace ()
-burnManyBeacons = do
+mintUsingBurnRedeemer :: EmulatorTrace ()
+mintUsingBurnRedeemer = do
   h1 <- activateContractWallet (knownWallet 1) endpoints
 
-  callEndpoint @"burn-beacon" h1 $
-    BurnBeaconParams
-      { burnPaymentPubKeyHash = mockWalletPaymentPubKeyHash $ knownWallet 1
-      , burnAmount = (-3)
+  let userPubKeyHash = mockWalletPaymentPubKeyHash $ knownWallet 2
+  callEndpoint @"mint-beacons" h1 $
+    MintBeaconParams
+      { mintBeacons = [(pubKeyAsToken userPubKeyHash,1)]
+      , useMintRedeemer = False
+      , redeemerPkh = userPubKeyHash
+      , userMustSign = False
       }
-  
-  void $ waitUntilSlot 2
 
--- | A trace where the payment pubkey doesn't sign.
--- This should produce a failed transaction when burnBeacon is called.
-pubKeyDoesntSignBurn :: EmulatorTrace ()
-pubKeyDoesntSignBurn = do
-  h2 <- activateContractWallet (knownWallet 2) endpoints
+burnOtherUserBeacons :: EmulatorTrace ()
+burnOtherUserBeacons = do
+  h2 <- activateContractWallet (knownWallet 1) endpoints
 
-  callEndpoint @"burn-beacon" h2 $
-    BurnBeaconParams
-      { burnPaymentPubKeyHash = mockWalletPaymentPubKeyHash $ knownWallet 1
-      , burnAmount = (-1)
+  let userPubKeyHash = mockWalletPaymentPubKeyHash $ knownWallet 1
+  callEndpoint @"mint-beacons" h2 $
+    MintBeaconParams
+      { mintBeacons = [(pubKeyAsToken userPubKeyHash,-3)]
+      , useMintRedeemer = False
+      , redeemerPkh = userPubKeyHash
+      , userMustSign = False
       }
-  
-  void $ waitUntilSlot 2
 
--- | A trace where everything is correct.
--- This should produce a successfull transaction when burnBeacon is called.
-successfullBurn :: EmulatorTrace ()
-successfullBurn = do
-  h1 <- activateContractWallet (knownWallet 1) endpoints
-
-  callEndpoint @"burn-beacon" h1 $
-    BurnBeaconParams
-      { burnPaymentPubKeyHash = mockWalletPaymentPubKeyHash $ knownWallet 1
-      , burnAmount = (-1)
-      }
-  
-  void $ waitUntilSlot 2
-
-test :: TestTree
-test = do
-  let burnOpts = defaultCheckOptions & emulatorConfig .~ burnEmulatorConfig
+-------------------------------------------------
+-- Test Functions
+-------------------------------------------------
+tests :: TestTree
+tests = do
+  let opts = defaultCheckOptions & emulatorConfig .~ burnConfig
   testGroup "Cardano-Address-Book"
     [ testGroup "Mint Beacon"
-      [ checkPredicate "Too Many Beacons Minted"
-          (Test.not assertNoFailedTransactions) mintTooManyBeacons
-      , checkPredicate "Pubkey Didn't Sign"
-          (Test.not assertNoFailedTransactions) pubkeyDoesntSignMint
-      , checkPredicate "Successfull Mint"
-          assertNoFailedTransactions successfullMint
+      [ checkPredicate "Fail if too many beacons minted for user"
+          (Test.not assertNoFailedTransactions) mintTooManyBeaconsForUser
+      , checkPredicate "Fail if pubkey of token name didn't sign"
+          (Test.not assertNoFailedTransactions) mintBeaconWithoutUserSigning
+      , checkPredicate "Fail if minting other user's beacons in addition to own"
+          (Test.not assertNoFailedTransactions) mintAdditionalTokensForOtherUsers
+      , checkPredicate "Fail if burn redeemer used to mint"
+          (Test.not assertNoFailedTransactions) mintUsingBurnRedeemer
       ]
     , testGroup "Burn Beacon"
-      [ checkPredicateOptions burnOpts "Many Beacons Burned"
-          assertNoFailedTransactions burnManyBeacons
-      , checkPredicateOptions burnOpts "PubKey Didn't Sign"
-          (Test.not assertNoFailedTransactions) pubKeyDoesntSignBurn
-      , checkPredicateOptions burnOpts "Successfull Burn"
-          assertNoFailedTransactions successfullBurn
+      [ checkPredicateOptions opts "Always allow burning"
+          assertNoFailedTransactions burnOtherUserBeacons
       ]
     ]
+
+testTrace :: IO ()
+testTrace = runEmulatorTraceIO' def burnConfig burnOtherUserBeacons

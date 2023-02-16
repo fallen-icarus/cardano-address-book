@@ -5,4 +5,4 @@ import Test.Tasty
 import Tests.BeaconTraces
 
 main :: IO ()
-main = defaultMain test
+main = defaultMain tests
