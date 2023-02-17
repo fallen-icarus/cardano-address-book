@@ -17,7 +17,6 @@ import Data.Aeson
 import Control.Monad (mzero)
 import Data.Proxy
 
-import CardanoAddressBook (CurrencySymbol,TokenName)
 import CLI.Types (BeaconID(..),AddressEntry(..))
 
 -- | Newtype wrapper around api key for using blockfrost
